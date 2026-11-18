@@ -64,7 +64,7 @@ app.get('/api/health', async (req, res) => {
     res.json({
         status: 'UP',
         timestamp: new Date().toISOString(),
-        database: isDbConnected ? 'Connected (MySQL)' : 'Disconnected'
+        database: isDbConnected ? 'Connected (PostgreSQL)' : 'Disconnected'
     });
 });
 

@@ -1,6 +1,6 @@
 /**
  * File: src/models/SiswaModel.js
- * Deskripsi: Model berorientasi objek untuk entitas Siswa dengan akses basis data SQL
+ * Deskripsi: Model berorientasi objek untuk entitas Siswa dengan akses basis data SQL (PostgreSQL)
  * Standar Kompetensi: 
  * - J.620100.007.01 (Entitas & Relasi)
  * - J.620100.018.02 (Pemrograman Berorientasi Objek)
@@ -38,7 +38,7 @@ class SiswaModel {
                 s.kode_siswa,
                 s.nama_siswa,
                 s.alamat_siswa,
-                DATE_FORMAT(s.tgl_siswa, '%Y-%m-%d') AS tgl_siswa,
+                TO_CHAR(s.tgl_siswa, 'YYYY-MM-DD') AS tgl_siswa,
                 s.id_jurusan,
                 j.kode_jurusan,
                 j.nama_jurusan,
@@ -50,15 +50,15 @@ class SiswaModel {
         const params = [];
 
         if (search && search.trim() !== '') {
-            sql += ` WHERE s.nama_siswa LIKE ? OR s.kode_siswa LIKE ? OR j.nama_jurusan LIKE ? `;
             const wildcard = `%${search.trim()}%`;
+            sql += ` WHERE s.nama_siswa ILIKE $1 OR s.kode_siswa ILIKE $2 OR j.nama_jurusan ILIKE $3 `;
             params.push(wildcard, wildcard, wildcard);
         }
 
         sql += ` ORDER BY s.id DESC `;
 
-        const [rows] = await pool.query(sql, params);
-        return rows.map(row => new SiswaModel(row));
+        const result = await pool.query(sql, params);
+        return result.rows.map(row => new SiswaModel(row));
     }
 
     /**
@@ -74,7 +74,7 @@ class SiswaModel {
                 s.kode_siswa,
                 s.nama_siswa,
                 s.alamat_siswa,
-                DATE_FORMAT(s.tgl_siswa, '%Y-%m-%d') AS tgl_siswa,
+                TO_CHAR(s.tgl_siswa, 'YYYY-MM-DD') AS tgl_siswa,
                 s.id_jurusan,
                 j.kode_jurusan,
                 j.nama_jurusan,
@@ -82,10 +82,10 @@ class SiswaModel {
                 s.updated_at
             FROM siswa s
             INNER JOIN jurusan j ON s.id_jurusan = j.id
-            WHERE s.id = ?
+            WHERE s.id = $1
         `;
-        const [rows] = await pool.query(sql, [id]);
-        return rows.length > 0 ? new SiswaModel(rows[0]) : null;
+        const result = await pool.query(sql, [id]);
+        return result.rows.length > 0 ? new SiswaModel(result.rows[0]) : null;
     }
 
     /**
@@ -96,16 +96,16 @@ class SiswaModel {
      */
     static async isKodeSiswaExists(kode_siswa, excludeId = null) {
         const pool = db.getPool();
-        let sql = `SELECT id FROM siswa WHERE kode_siswa = ?`;
+        let sql = `SELECT id FROM siswa WHERE kode_siswa = $1`;
         const params = [kode_siswa];
 
         if (excludeId) {
-            sql += ` AND id != ?`;
+            sql += ` AND id != $2`;
             params.push(excludeId);
         }
 
-        const [rows] = await pool.query(sql, params);
-        return rows.length > 0;
+        const result = await pool.query(sql, params);
+        return result.rows.length > 0;
     }
 
     /**
@@ -116,17 +116,18 @@ class SiswaModel {
      */
     static async create({ kode_siswa, nama_siswa, alamat_siswa, tgl_siswa, id_jurusan }) {
         const pool = db.getPool();
-        const connection = await pool.getConnection();
+        const client = await pool.connect();
 
         try {
             // Memulai transaksi SQL
-            await connection.beginTransaction();
+            await client.query('BEGIN');
 
             const sql = `
                 INSERT INTO siswa (kode_siswa, nama_siswa, alamat_siswa, tgl_siswa, id_jurusan)
-                VALUES (?, ?, ?, ?, ?)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id
             `;
-            const [result] = await connection.query(sql, [
+            const result = await client.query(sql, [
                 kode_siswa,
                 nama_siswa,
                 alamat_siswa,
@@ -135,14 +136,14 @@ class SiswaModel {
             ]);
 
             // Melakukan commit jika operasi berhasil
-            await connection.commit();
-            return result.insertId;
+            await client.query('COMMIT');
+            return result.rows[0].id;
         } catch (error) {
             // Melakukan rollback jika terjadi kesalahan untuk menjaga konsistensi data
-            await connection.rollback();
+            await client.query('ROLLBACK');
             throw error;
         } finally {
-            connection.release();
+            client.release();
         }
     }
 
@@ -154,17 +155,18 @@ class SiswaModel {
      */
     static async update(id, { kode_siswa, nama_siswa, alamat_siswa, tgl_siswa, id_jurusan }) {
         const pool = db.getPool();
-        const connection = await pool.getConnection();
+        const client = await pool.connect();
 
         try {
-            await connection.beginTransaction();
+            await client.query('BEGIN');
 
             const sql = `
                 UPDATE siswa 
-                SET kode_siswa = ?, nama_siswa = ?, alamat_siswa = ?, tgl_siswa = ?, id_jurusan = ?
-                WHERE id = ?
+                SET kode_siswa = $1, nama_siswa = $2, alamat_siswa = $3, tgl_siswa = $4, id_jurusan = $5,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $6
             `;
-            const [result] = await connection.query(sql, [
+            const result = await client.query(sql, [
                 kode_siswa,
                 nama_siswa,
                 alamat_siswa,
@@ -173,13 +175,13 @@ class SiswaModel {
                 id
             ]);
 
-            await connection.commit();
-            return result.affectedRows > 0;
+            await client.query('COMMIT');
+            return result.rowCount > 0;
         } catch (error) {
-            await connection.rollback();
+            await client.query('ROLLBACK');
             throw error;
         } finally {
-            connection.release();
+            client.release();
         }
     }
 
@@ -190,9 +192,9 @@ class SiswaModel {
      */
     static async delete(id) {
         const pool = db.getPool();
-        const sql = `DELETE FROM siswa WHERE id = ?`;
-        const [result] = await pool.query(sql, [id]);
-        return result.affectedRows > 0;
+        const sql = `DELETE FROM siswa WHERE id = $1`;
+        const result = await pool.query(sql, [id]);
+        return result.rowCount > 0;
     }
 }
 

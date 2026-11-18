@@ -1,26 +1,24 @@
 /**
  * File: src/config/database.js
- * Deskripsi: Modul koneksi basis data MySQL menggunakan connection pool
+ * Deskripsi: Modul koneksi basis data PostgreSQL menggunakan connection pool
  * Standar Kompetensi: J.620100.018.02 (OOP) & J.620100.021.02 (Akses Basis Data)
  */
 
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 require('dotenv').config();
 
 class DatabaseConnection {
     constructor() {
         if (!DatabaseConnection.instance) {
-            this.pool = mysql.createPool({
-                host: process.env.DB_HOST || 'localhost',
-                user: process.env.DB_USER || 'root',
-                password: process.env.DB_PASSWORD || '',
-                database: process.env.DB_NAME || 'db_sekolah_siswa',
-                port: parseInt(process.env.DB_PORT, 10) || 3306,
-                waitForConnections: true,
-                connectionLimit: 10,
-                queueLimit: 0,
-                enableKeepAlive: true,
-                keepAliveInitialDelay: 0
+            this.pool = new Pool({
+                host:     process.env.DB_HOST     || 'localhost',
+                user:     process.env.DB_USER     || 'postgres',
+                password: process.env.DB_PASSWORD || 'postgres',
+                database: process.env.DB_NAME     || 'db_sekolah_siswa',
+                port:     parseInt(process.env.DB_PORT, 10) || 5432,
+                max: 10,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 2000
             });
             DatabaseConnection.instance = this;
         }
@@ -29,24 +27,24 @@ class DatabaseConnection {
 
     /**
      * Mendapatkan instance pool koneksi
-     * @returns {import('mysql2/promise').Pool}
+     * @returns {import('pg').Pool}
      */
     getPool() {
         return this.pool;
     }
 
     /**
-     * Uji koneksi ke basis data MySQL
+     * Uji koneksi ke basis data PostgreSQL
      * @returns {Promise<boolean>}
      */
     async testConnection() {
         try {
-            const connection = await this.pool.getConnection();
-            console.log('✅ [Database]: Berhasil terhubung ke database MySQL (' + (process.env.DB_NAME || 'db_sekolah_siswa') + ')');
-            connection.release();
+            const client = await this.pool.connect();
+            console.log('✅ [Database]: Berhasil terhubung ke database PostgreSQL (' + (process.env.DB_NAME || 'db_sekolah_siswa') + ')');
+            client.release();
             return true;
         } catch (error) {
-            console.error('❌ [Database]: Gagal terhubung ke MySQL:', error.message);
+            console.error('❌ [Database]: Gagal terhubung ke PostgreSQL:', error.message);
             return false;
         }
     }

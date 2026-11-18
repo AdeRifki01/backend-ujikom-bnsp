@@ -1,7 +1,6 @@
 /**
  * File: src/models/JurusanModel.js
- * Deskripsi: Model untuk entitas Jurusan (Master Data)
- * Standar Kompetensi: J.620100.007.01 (Entitas) & J.620100.018.02 (OOP)
+ * Deskripsi: Model untuk entitas Jurusan (PostgreSQL)
  */
 
 const db = require('../config/database');
@@ -14,8 +13,8 @@ class JurusanModel {
     static async findAll() {
         const pool = db.getPool();
         const sql = 'SELECT id, kode_jurusan, nama_jurusan FROM jurusan ORDER BY nama_jurusan ASC';
-        const [rows] = await pool.query(sql);
-        return rows;
+        const result = await pool.query(sql);
+        return result.rows;
     }
 
     /**
@@ -25,9 +24,9 @@ class JurusanModel {
      */
     static async findById(id) {
         const pool = db.getPool();
-        const sql = 'SELECT id, kode_jurusan, nama_jurusan FROM jurusan WHERE id = ?';
-        const [rows] = await pool.query(sql, [id]);
-        return rows.length > 0 ? rows[0] : null;
+        const sql = 'SELECT id, kode_jurusan, nama_jurusan FROM jurusan WHERE id = $1';
+        const result = await pool.query(sql, [id]);
+        return result.rows.length > 0 ? result.rows[0] : null;
     }
 }
 
