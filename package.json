@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "init-db": "node src/initDb.js"
+    "init-db": "node src/initDb.js",
+    "clear-siswa": "node src/clearSiswa.js"
   },
   "keywords": [
     "express",
