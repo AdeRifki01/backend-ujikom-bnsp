@@ -53,7 +53,6 @@ app.get('/', (req, res) => {
             siswa: '/api/siswa',
             jurusan: '/api/jurusan',
             health: '/api/health',
-            export: '/api/siswa/export/json',
             logs: '/api/logs'
         }
     });

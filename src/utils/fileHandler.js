@@ -1,6 +1,6 @@
 /**
  * File: src/utils/fileHandler.js
- * Deskripsi: Modul utilitas untuk operasi input/output berkas (File Access)
+ * Deskripsi: Modul utilitas untuk operasi input/output berkas log (File Access)
  * Standar Kompetensi: J.620100.017.02 (Pemrograman Terstruktur - Akses File)
  */
 
@@ -10,21 +10,17 @@ const path = require('path');
 class FileHandler {
     constructor() {
         this.logDir = path.join(__dirname, '../../logs');
-        this.exportDir = path.join(__dirname, '../../exports');
         this.logFilePath = path.join(this.logDir, 'aktivitas.log');
 
         this._ensureDirectories();
     }
 
     /**
-     * Memastikan direktori logs dan exports telah dibuat
+     * Memastikan direktori logs telah dibuat
      */
     _ensureDirectories() {
         if (!fs.existsSync(this.logDir)) {
             fs.mkdirSync(this.logDir, { recursive: true });
-        }
-        if (!fs.existsSync(this.exportDir)) {
-            fs.mkdirSync(this.exportDir, { recursive: true });
         }
     }
 
@@ -42,20 +38,6 @@ class FileHandler {
                 console.error('Gagal menulis log ke berkas:', err);
             }
         });
-    }
-
-    /**
-     * Mengekspor kumpulan data ke berkas JSON
-     * @param {Array|Object} data 
-     * @param {string} fileName 
-     * @returns {string} Path berkas hasil ekspor
-     */
-    eksporKeJson(data, fileName = 'data_siswa_backup.json') {
-        const destination = path.join(this.exportDir, fileName);
-        const dataJson = JSON.stringify(data, null, 2);
-        fs.writeFileSync(destination, dataJson, 'utf8');
-        this.tulisLog(`Berhasil mengekspor data ke berkas ${fileName}`);
-        return destination;
     }
 
     /**

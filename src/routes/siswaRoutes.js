@@ -9,9 +9,6 @@ const router = express.Router();
 const siswaController = require('../controllers/SiswaController');
 const validator = require('../middlewares/validator');
 
-// Ekspor data ke JSON (Harus di atas /:id agar tidak tertimpa parameter id)
-router.get('/export/json', siswaController.exportData.bind(siswaController));
-
 // CRUD Endpoints
 router.get('/', siswaController.getAll.bind(siswaController));
 router.get('/:id', siswaController.getById.bind(siswaController));

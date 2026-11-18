@@ -198,26 +198,6 @@ class SiswaController {
             next(error);
         }
     }
-
-    /**
-     * Ekspor data siswa ke berkas JSON (Akses File)
-     * GET /api/siswa/export/json
-     */
-    async exportData(req, res, next) {
-        try {
-            const allData = await SiswaModel.findAll();
-            const filePath = fileHandler.eksporKeJson(allData);
-
-            return res.status(200).json({
-                success: true,
-                message: 'Data siswa berhasil diekspor ke berkas JSON',
-                filePath: filePath,
-                total: allData.length
-            });
-        } catch (error) {
-            next(error);
-        }
-    }
 }
 
 module.exports = new SiswaController();
